@@ -1,2 +1,2 @@
 all:
-	g++ hello.cpp -o hello `pkg-config gtkmm-3.0 --cflags --libs` -ljsoncpp -std=c++14
+	g++ jvi.cpp -o jvi `pkg-config gtkmm-3.0 --cflags --libs` -ljsoncpp -std=c++14
