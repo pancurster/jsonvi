@@ -15,9 +15,6 @@ public:
         button
             .signal_clicked()
             .connect(sigc::mem_fun(*this, &HelloWorld::on_button_clicked));
-
-        //add(button);
-        //button.show();
     }
     virtual ~HelloWorld() {}
 
@@ -107,14 +104,6 @@ int main(int argc, char *argv[])
         (*row_iter)[model.value_text] = filename;
 
         iterNode(root, row_iter, makeNodeView);
-
-        /*
-        for (auto i = root.begin();  i != root.end(); ++i) {
-            makeNodeView(i, row_iter);
-            cout << "name:" << i.name() <<" value:" << *i
-                 << " size:" << i->size() <<"\n";
-        }
-        */
 
         cout << "size:" << root.size() << "\n";
     }
