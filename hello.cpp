@@ -54,14 +54,19 @@ int main(int argc, char *argv[])
     auto app = Gtk::Application::create(argc, argv, "org.gtkmm.examples.base");
 
     HelloWorld window;
-    window.set_default_size(200, 200);
+    window.set_default_size(400, 400);
+    Gtk::ScrolledWindow scrolledWindow;
+    window.add(scrolledWindow);
+    scrolledWindow.show();
 
     Model model;
     auto refTreeStore = Gtk::TreeStore::create(model);
 
     Gtk::TreeView treeView(refTreeStore);
     treeView.append_column("JSON", model.value_text);
-    window.add(treeView);
+    treeView.set_hover_selection(true);
+    treeView.set_enable_tree_lines(true);
+    scrolledWindow.add(treeView);
     treeView.show();
 
     auto makeNodeView = [&refTreeStore, &model](auto jsonVal, auto parent) {
