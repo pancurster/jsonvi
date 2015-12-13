@@ -35,13 +35,36 @@ public:
     Gtk::TreeModelColumn<Glib::ustring> value_text;
 };
 
-auto iterNode(Json::Value root, auto viewParent, auto makeNodeView) {
-    for (auto i = root.begin(); i != root.end(); ++i) {
-        if (i->size()) {
-            auto subViewParent = makeNodeView(i, viewParent);
-            iterNode(*i, subViewParent, makeNodeView);
+auto iterNode(Json::Value& jsonRoot, auto viewRoot, auto mainTreeStorage)
+{
+    Model model;
+    auto makeNodeView = [&model](auto name, auto val, auto child) {
+        if (val.size()) {
+            (*child)[model.value_text] = name + " : " + val;
         } else {
-            makeNodeView(i, viewParent);
+            (*child)[model.value_text] = name;
+        }
+    };
+
+    int index = 0;
+    for (auto i = jsonRoot.begin(); i != jsonRoot.end(); ++i)
+    {
+        string name = i.name();
+        if (jsonRoot.type() == Json::ValueType::arrayValue) {
+            name = "[" + to_string(index++) + "]";
+        }
+        string val = "";
+        if (i->isConvertibleTo(Json::ValueType::stringValue)) {
+            val = i->asString();
+        }
+
+        auto child = mainTreeStorage->append(viewRoot->children());
+
+        if (i->size()) {
+            makeNodeView(name, val, child);
+            iterNode(*i, child, mainTreeStorage);
+        } else {
+            makeNodeView(name, val, child);
         }
     }
 };
@@ -57,32 +80,16 @@ int main(int argc, char *argv[])
     scrolledWindow.show();
 
     Model model;
-    auto refTreeStore = Gtk::TreeStore::create(model);
+    auto mainTreeStorage = Gtk::TreeStore::create(model);
 
-    Gtk::TreeView treeView(refTreeStore);
+    Gtk::TreeView treeView(mainTreeStorage);
     treeView.append_column("JSON", model.value_text);
     treeView.set_hover_selection(true);
     treeView.set_enable_tree_lines(true);
     scrolledWindow.add(treeView);
     treeView.show();
 
-    auto makeNodeView = [&refTreeStore, &model](auto jsonVal, auto parent) {
-        auto child = refTreeStore->append(parent->children());
-        if (jsonVal->size()) {
-            (*child)[model.value_text] = jsonVal.name();
-        } else {
-            if (jsonVal->isConvertibleTo(Json::ValueType::stringValue)) {
-                (*child)[model.value_text] =
-                    jsonVal.name() + " : " + jsonVal->asString();
-            } else {
-                (*child)[model.value_text] = jsonVal.name();
-                cout << "Not convertible to string:" << *jsonVal;
-            }
-        }
-        return child;
-    };
-
-    Json::Value root;
+    Json::Value jsonRoot;
     Json::Reader reader;
     //if (argv[1]) {
     //string filename = "sample.json";
@@ -91,7 +98,7 @@ int main(int argc, char *argv[])
         std::filebuf fb;
         if (fb.open(filename, std::ios::in)) {
             std::istream is(&fb);
-            auto success = reader.parse(is, root);
+            auto success = reader.parse(is, jsonRoot);
             if (!success) {
                 cout << "Ups! Problem parsing JSON\n";
                 cout << reader.getFormattedErrorMessages();
@@ -100,12 +107,12 @@ int main(int argc, char *argv[])
             fb.close();
         }
 
-        auto row_iter = refTreeStore->append();
-        (*row_iter)[model.value_text] = filename;
+        auto viewRoot = mainTreeStorage->append();
+        (*viewRoot)[model.value_text] = filename;
 
-        iterNode(root, row_iter, makeNodeView);
+        iterNode(jsonRoot, viewRoot, mainTreeStorage);
 
-        cout << "size:" << root.size() << "\n";
+        cout << "size:" << jsonRoot.size() << "\n";
     }
 
     return app->run(window);
