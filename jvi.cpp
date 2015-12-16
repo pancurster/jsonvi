@@ -71,10 +71,11 @@ auto iterNode(Json::Value& jsonRoot, auto viewRoot, auto mainTreeStorage)
 
 int main(int argc, char *argv[])
 {
-    auto app = Gtk::Application::create(argc, argv, "org.gtkmm.examples.base");
+    int argcgtk = 1;
+    auto app = Gtk::Application::create(argcgtk, argv, "org.gtkmm.examples.base");
 
     HelloWorld window;
-    window.set_default_size(400, 400);
+    window.set_default_size(800, 800);
     Gtk::ScrolledWindow scrolledWindow;
     window.add(scrolledWindow);
     scrolledWindow.show();
@@ -91,9 +92,11 @@ int main(int argc, char *argv[])
 
     Json::Value jsonRoot;
     Json::Reader reader;
-    //if (argv[1]) {
-    //string filename = "sample.json";
-    string filename = "big.json";
+
+    string filename;
+    if (argv[1]) {
+        filename = argv[1];
+    }
     if (filename.size()) {
         std::filebuf fb;
         if (fb.open(filename, std::ios::in)) {
