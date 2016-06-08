@@ -3,42 +3,77 @@
 #include <iostream>
 #include <fstream>
 #include <functional>
+#include "jvi.h"
 
 using namespace std;
 
-class HelloWorld : public Gtk::Window
+int main(int argc, char *argv[])
 {
-public:
-    HelloWorld() : button("Hello World") {
-        set_border_width(10);
+    int argcgtk = 1;
+    auto app = Gtk::Application::create(argcgtk, argv, "org.gtkmm.examples.base");
 
-        button
-            .signal_clicked()
-            .connect(sigc::mem_fun(*this, &HelloWorld::on_button_clicked));
-    }
-    virtual ~HelloWorld() {}
+    JviMainWindow* window = new JviMainWindow;
+    JviModel* root_model = new JviModel;
+    Glib::RefPtr<Gtk::TreeStore> main_tree_storage = Gtk::TreeStore::create(*root_model);
+    setup_gui(window, main_tree_storage, root_model);
 
-protected:
-    void on_button_clicked() {
-        cout << "Hello world\n";
-    }
-    Gtk::Button button;
-};
+    string filename = argv[1] ? argv[1] : "";
+    Json::Value* json_object = parse_json(filename);
 
-class Model : public Gtk::TreeModelColumnRecord
+    auto view_root = main_tree_storage->append();
+    (*view_root)[root_model->value_text] = filename;
+
+    iterNode(*json_object, view_root, main_tree_storage);
+
+    cout << "size:" << json_object->size() << "\n";
+
+    return app->run(*window);
+}
+
+void setup_gui(JviMainWindow*               window,
+               Glib::RefPtr<Gtk::TreeStore> main_tree_storage,
+               JviModel*                    model)
 {
-public:
-    Model() {
-        add(value_text);
-    }
-    virtual ~Model() {}
-    Gtk::TreeModelColumn<Glib::ustring> value_text;
-};
+    window->set_default_size(800, 800);
 
-auto iterNode(Json::Value& jsonRoot, auto viewRoot, auto mainTreeStorage)
+    Gtk::ScrolledWindow* scrolled_window = new Gtk::ScrolledWindow;
+    window->add(*scrolled_window);
+
+    scrolled_window->show();
+
+    Gtk::TreeView* tree_view = new Gtk::TreeView(main_tree_storage);
+    tree_view->append_column("JSON", model->value_text);
+    tree_view->set_hover_selection(true);
+    tree_view->set_enable_tree_lines(true);
+    scrolled_window->add(*tree_view);
+    tree_view->show();
+}
+
+Json::Value* parse_json(string filename)
 {
-    Model model;
-    auto makeNodeView = [&model](auto name, auto val, auto child) {
+    Json::Value* json_root = new Json::Value;
+    Json::Reader reader;
+
+    if (filename.size()) {
+        std::filebuf fb;
+        if (fb.open(filename, std::ios::in)) {
+            std::istream is(&fb);
+            auto success = reader.parse(is, *json_root);
+            if (!success) {
+                cout << "Ups! Problem parsing JSON\n";
+                cout << reader.getFormattedErrorMessages();
+                return nullptr;
+            }
+            fb.close();
+        }
+    }
+    return json_root;
+}
+
+auto iterNode(Json::Value& json_root, auto view_root, auto main_tree_storage)
+{
+    JviModel model;
+    auto make_node_view = [&model](auto name, auto val, auto child) {
         if (val.size()) {
             (*child)[model.value_text] = name + " : " + val;
         } else {
@@ -47,10 +82,10 @@ auto iterNode(Json::Value& jsonRoot, auto viewRoot, auto mainTreeStorage)
     };
 
     int index = 0;
-    for (auto i = jsonRoot.begin(); i != jsonRoot.end(); ++i)
+    for (auto i = json_root.begin(); i != json_root.end(); ++i)
     {
         string name = i.name();
-        if (jsonRoot.type() == Json::ValueType::arrayValue) {
+        if (json_root.type() == Json::ValueType::arrayValue) {
             name = "[" + to_string(index++) + "]";
         }
         string val = "";
@@ -58,65 +93,14 @@ auto iterNode(Json::Value& jsonRoot, auto viewRoot, auto mainTreeStorage)
             val = i->asString();
         }
 
-        auto child = mainTreeStorage->append(viewRoot->children());
+        auto child = main_tree_storage->append(view_root->children());
 
         if (i->size()) {
-            makeNodeView(name, val, child);
-            iterNode(*i, child, mainTreeStorage);
+            make_node_view(name, val, child);
+            iterNode(*i, child, main_tree_storage);
         } else {
-            makeNodeView(name, val, child);
+            make_node_view(name, val, child);
         }
     }
 };
 
-int main(int argc, char *argv[])
-{
-    int argcgtk = 1;
-    auto app = Gtk::Application::create(argcgtk, argv, "org.gtkmm.examples.base");
-
-    HelloWorld window;
-    window.set_default_size(800, 800);
-    Gtk::ScrolledWindow scrolledWindow;
-    window.add(scrolledWindow);
-    scrolledWindow.show();
-
-    Model model;
-    auto mainTreeStorage = Gtk::TreeStore::create(model);
-
-    Gtk::TreeView treeView(mainTreeStorage);
-    treeView.append_column("JSON", model.value_text);
-    treeView.set_hover_selection(true);
-    treeView.set_enable_tree_lines(true);
-    scrolledWindow.add(treeView);
-    treeView.show();
-
-    Json::Value jsonRoot;
-    Json::Reader reader;
-
-    string filename;
-    if (argv[1]) {
-        filename = argv[1];
-    }
-    if (filename.size()) {
-        std::filebuf fb;
-        if (fb.open(filename, std::ios::in)) {
-            std::istream is(&fb);
-            auto success = reader.parse(is, jsonRoot);
-            if (!success) {
-                cout << "Ups! Problem parsing JSON\n";
-                cout << reader.getFormattedErrorMessages();
-                return 1;
-            }
-            fb.close();
-        }
-
-        auto viewRoot = mainTreeStorage->append();
-        (*viewRoot)[model.value_text] = filename;
-
-        iterNode(jsonRoot, viewRoot, mainTreeStorage);
-
-        cout << "size:" << jsonRoot.size() << "\n";
-    }
-
-    return app->run(window);
-}
