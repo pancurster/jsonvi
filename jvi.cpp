@@ -87,17 +87,27 @@ auto iterNode(Json::Value& json_root, auto view_root, auto main_tree_storage)
         }
     };
 
-    int index = 0;
-    for (auto i = json_root.begin(); i != json_root.end(); ++i)
-    {
+    auto get_name = [&json_root](auto i, int& table_index) {
         string name = i.name();
         if (json_root.type() == Json::ValueType::arrayValue) {
-            name = "[" + to_string(index++) + "]";
+            name = "[" + to_string(table_index++) + "]";
         }
+        return name;
+    };
+
+    auto get_value = [](auto i) {
         string val = "";
         if (i->isConvertibleTo(Json::ValueType::stringValue)) {
             val = i->asString();
         }
+        return val;
+    };
+
+    int index = 0;
+    for (Json::ValueIterator i = json_root.begin(); i != json_root.end(); ++i)
+    {
+        string name = get_name(i, index);
+        string val = get_value(i);
 
         auto child = main_tree_storage->append(view_root->children());
 
