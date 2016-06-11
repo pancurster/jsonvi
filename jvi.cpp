@@ -5,20 +5,24 @@
 #include <functional>
 #include "jvi.h"
 
+// TODO:
+// add marks
+// add selected object path
+
 using namespace std;
 
 int main(int argc, char *argv[])
 {
+    string filename = argv[1] ? argv[1] : "";
+    Json::Value* json_object = parse_json(filename);
+
     int argcgtk = 1;
     auto app = Gtk::Application::create(argcgtk, argv, "org.gtkmm.examples.base");
 
     JviMainWindow* window = new JviMainWindow;
     JviModel* root_model = new JviModel;
     Glib::RefPtr<Gtk::TreeStore> main_tree_storage = Gtk::TreeStore::create(*root_model);
-    setup_gui(window, main_tree_storage, root_model);
-
-    string filename = argv[1] ? argv[1] : "";
-    Json::Value* json_object = parse_json(filename);
+    setup_gui(window, main_tree_storage, root_model, filename);
 
     auto view_root = main_tree_storage->append();
     (*view_root)[root_model->value_text] = filename;
@@ -32,9 +36,11 @@ int main(int argc, char *argv[])
 
 void setup_gui(JviMainWindow*               window,
                Glib::RefPtr<Gtk::TreeStore> main_tree_storage,
-               JviModel*                    model)
+               JviModel*                    model,
+               string                       filename)
 {
     window->set_default_size(800, 800);
+    window->set_title("jvi - " + filename);
 
     Gtk::ScrolledWindow* scrolled_window = new Gtk::ScrolledWindow;
     window->add(*scrolled_window);

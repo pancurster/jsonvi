@@ -38,7 +38,8 @@ public:
 
 void setup_gui(JviMainWindow* window,
                Glib::RefPtr<Gtk::TreeStore> mainTreeStorage,
-               JviModel* model);
+               JviModel* model,
+               std::string filename);
 Json::Value* parse_json(std::string filename);
 auto iterNode(Json::Value& jsonRoot, auto viewRoot, auto mainTreeStorage);
 
