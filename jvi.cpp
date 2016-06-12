@@ -6,8 +6,11 @@
 #include "jvi.h"
 
 // TODO:
-// add marks
-// add selected object path
+// add bookmarks
+// add open list on click on label
+// add some colors
+// add maybe icons (pixmap)
+// remove mark over mousecursor (instead mark on click)
 
 using namespace std;
 
@@ -36,18 +39,18 @@ int main(int argc, char *argv[])
     return app->run(*window);
 }
 
-void click_handler(const Gtk::TreeModel::Path& c_path, Gtk::TreeViewColumn* view)
+void click_tree_node_handler(const Gtk::TreeModel::Path& c_path, Gtk::TreeViewColumn* view)
 {
     string path_to_object = "";
     JviModel row_model;
     Gtk::TreeModel::Path path = c_path; // is there a better way to traverse trough this?
 
     auto model = view->get_tree_view()->get_model();
-    do {
-        auto row = model->get_iter(path);
-        string value = row->get_value(row_model.value_text);
+    while (path) {
+        string value = model->get_iter(path)->get_value(row_model.value_text);
         path_to_object = value + "/" + path_to_object;
-    } while (path.up());
+        path.up();
+    }
     root.gui.path_entry_buff->set_text(path_to_object);
 }
 
@@ -82,7 +85,7 @@ void setup_gui(JviMainWindow*               window,
     tree_view->set_hover_selection(true);
     tree_view->set_enable_tree_lines(true);
     tree_view->set_activate_on_single_click(true);
-    tree_view->signal_row_activated().connect(sigc::ptr_fun(&click_handler));
+    tree_view->signal_row_activated().connect(sigc::ptr_fun(&click_tree_node_handler));
     scrolled_window->add(*tree_view);
     tree_view->show();
 }
