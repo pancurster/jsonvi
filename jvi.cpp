@@ -7,7 +7,6 @@
 
 // TODO:
 // add bookmarks
-// add open list on click on label
 // add some colors
 // add maybe icons (pixmap)
 // remove mark over mousecursor (instead mark on click)
@@ -43,8 +42,9 @@ void click_tree_node_handler(const Gtk::TreeModel::Path& c_path, Gtk::TreeViewCo
 {
     string path_to_object = "";
     JviModel row_model;
-    Gtk::TreeModel::Path path = c_path; // is there a better way to traverse trough this?
+    Gtk::TreeModel::Path path = c_path;
 
+    /* update path to clicked node */
     auto model = view->get_tree_view()->get_model();
     while (path) {
         string value = model->get_iter(path)->get_value(row_model.value_text);
@@ -52,6 +52,13 @@ void click_tree_node_handler(const Gtk::TreeModel::Path& c_path, Gtk::TreeViewCo
         path.up();
     }
     root.gui.path_entry_buff->set_text(path_to_object);
+
+
+    /*  expand/collapse on click */
+    if (view->get_tree_view()->row_expanded(c_path))
+        view->get_tree_view()->collapse_row(c_path);
+    else
+        view->get_tree_view()->expand_row(c_path, false);
 }
 
 void setup_gui(JviMainWindow*               window,
