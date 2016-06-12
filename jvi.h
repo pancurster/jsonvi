@@ -5,6 +5,12 @@
 #include <jsoncpp/json/json.h>
 #include <string>
 
+struct JviRoot {
+    struct Gui {
+        Glib::RefPtr<Gtk::EntryBuffer> path_entry_buff;
+    } gui;
+};
+
 class JviMainWindow : public Gtk::Window
 {
 public:
@@ -34,6 +40,7 @@ public:
     }
     virtual ~JviModel() {}
     Gtk::TreeModelColumn<Glib::ustring> value_text;
+    //Gtk::TreeModelColumn< Glib::RefPtr<Gdk::Pixbuf> > thumbnail;
 };
 
 void setup_gui(JviMainWindow* window,

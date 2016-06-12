@@ -11,6 +11,8 @@
 
 using namespace std;
 
+JviRoot root;
+
 int main(int argc, char *argv[])
 {
     string filename = argv[1] ? argv[1] : "";
@@ -34,23 +36,53 @@ int main(int argc, char *argv[])
     return app->run(*window);
 }
 
+void click_handler(const Gtk::TreeModel::Path& c_path, Gtk::TreeViewColumn* view)
+{
+    string path_to_object = "";
+    JviModel row_model;
+    Gtk::TreeModel::Path path = c_path; // is there a better way to traverse trough this?
+
+    auto model = view->get_tree_view()->get_model();
+    do {
+        auto row = model->get_iter(path);
+        string value = row->get_value(row_model.value_text);
+        path_to_object = value + "/" + path_to_object;
+    } while (path.up());
+    root.gui.path_entry_buff->set_text(path_to_object);
+}
+
 void setup_gui(JviMainWindow*               window,
                Glib::RefPtr<Gtk::TreeStore> main_tree_storage,
                JviModel*                    model,
                string                       filename)
 {
+    /* main window */
     window->set_default_size(800, 800);
     window->set_title("jvi - " + filename);
 
-    Gtk::ScrolledWindow* scrolled_window = new Gtk::ScrolledWindow;
-    window->add(*scrolled_window);
+    /* layout */
+    Gtk::VBox* main_vbox = new Gtk::VBox;
+    window->add(*main_vbox);
 
+    Gtk::Entry* path_entry = new Gtk::Entry;
+    path_entry->show();
+    root.gui.path_entry_buff = path_entry->get_buffer();
+
+    Gtk::ScrolledWindow* scrolled_window = new Gtk::ScrolledWindow;
     scrolled_window->show();
 
+    main_vbox->pack_start(*path_entry, false, false);
+    main_vbox->pack_end(*scrolled_window, true, true);
+    main_vbox->show();
+
+
+    /* other settings */
     Gtk::TreeView* tree_view = new Gtk::TreeView(main_tree_storage);
     tree_view->append_column("JSON", model->value_text);
     tree_view->set_hover_selection(true);
     tree_view->set_enable_tree_lines(true);
+    tree_view->set_activate_on_single_click(true);
+    tree_view->signal_row_activated().connect(sigc::ptr_fun(&click_handler));
     scrolled_window->add(*tree_view);
     tree_view->show();
 }
