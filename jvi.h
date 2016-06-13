@@ -6,6 +6,7 @@
 #include <string>
 
 struct JviRoot {
+    std::string filename;
     struct Gui {
         Glib::RefPtr<Gtk::EntryBuffer> path_entry_buff;
     } gui;
@@ -51,10 +52,9 @@ public:
 
 void setup_gui(JviMainWindow* window,
                Glib::RefPtr<Gtk::TreeStore> mainTreeStorage,
-               JviModel* model,
-               std::string filename);
+               JviModel* model);
 Json::Value* parse_json(std::string filename);
-auto iterNode(Json::Value& jsonRoot, auto viewRoot, auto mainTreeStorage);
+auto iter_node(Json::Value& jsonRoot, auto viewRoot, auto mainTreeStorage);
 
 
 #endif //JVI_H

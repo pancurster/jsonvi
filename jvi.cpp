@@ -16,26 +16,31 @@ JviRoot root;
 
 int main(int argc, char *argv[])
 {
-    string filename = argv[1] ? argv[1] : "";
-    Json::Value* json_object = parse_json(filename);
+    root.filename = argv[1] ? argv[1] : "";
 
     int argcgtk = 1;
     auto app = Gtk::Application::create(argcgtk, argv, "org.gtkmm.examples.base");
 
+    /* load resources */
     root.res.icon_doc = Gtk::IconTheme::get_default()->load_icon("text-x-generic", 16);
     root.res.icon_obj = Gtk::IconTheme::get_default()->load_icon("edit-copy", 16);
     root.res.icon_key = Gtk::IconTheme::get_default()->load_icon("media-playback-stop", 16);
 
+    /* setup main widgets */
     JviMainWindow* window = new JviMainWindow;
     JviModel* root_model = new JviModel;
     Glib::RefPtr<Gtk::TreeStore> main_tree_storage = Gtk::TreeStore::create(*root_model);
-    setup_gui(window, main_tree_storage, root_model, filename);
+    setup_gui(window, main_tree_storage, root_model);
 
     auto view_root = main_tree_storage->append();
-    (*view_root)[root_model->value_text] = filename;
+    (*view_root)[root_model->value_text] = root.filename;
     (*view_root)[root_model->value_icon] = root.res.icon_doc;
 
-    iterNode(*json_object, view_root, main_tree_storage);
+    /* parse json file */
+    Json::Value* json_object = parse_json(root.filename);
+
+    /* populate view by json */
+    iter_node(*json_object, view_root, main_tree_storage);
 
     cout << "size:" << json_object->size() << "\n";
 
@@ -67,12 +72,11 @@ void click_tree_node_handler(const Gtk::TreeModel::Path& c_path, Gtk::TreeViewCo
 
 void setup_gui(JviMainWindow*               window,
                Glib::RefPtr<Gtk::TreeStore> main_tree_storage,
-               JviModel*                    model,
-               string                       filename)
+               JviModel*                    model)
 {
     /* main window */
     window->set_default_size(800, 800);
-    window->set_title("jvi - " + filename);
+    window->set_title("jvi - " + root.filename);
 
     /* layout */
     Gtk::VBox* main_vbox = new Gtk::VBox;
@@ -127,7 +131,7 @@ Json::Value* parse_json(string filename)
     return json_root;
 }
 
-auto iterNode(Json::Value& json_root, auto view_root, auto main_tree_storage)
+auto iter_node(Json::Value& json_root, auto view_root, auto main_tree_storage)
 {
     JviModel model;
     auto make_node_view = [&model](auto name, auto val, auto child) {
@@ -166,7 +170,7 @@ auto iterNode(Json::Value& json_root, auto view_root, auto main_tree_storage)
 
         if (i->size()) {
             make_node_view(name, val, child);
-            iterNode(*i, child, main_tree_storage);
+            iter_node(*i, child, main_tree_storage);
         } else {
             make_node_view(name, val, child);
         }
