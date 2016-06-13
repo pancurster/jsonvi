@@ -8,7 +8,6 @@
 // TODO:
 // add bookmarks
 // add some colors
-// add maybe icons (pixmap)
 // remove mark over mousecursor (instead mark on click)
 
 using namespace std;
@@ -23,6 +22,10 @@ int main(int argc, char *argv[])
     int argcgtk = 1;
     auto app = Gtk::Application::create(argcgtk, argv, "org.gtkmm.examples.base");
 
+    root.res.icon_doc = Gtk::IconTheme::get_default()->load_icon("text-x-generic", 16);
+    root.res.icon_obj = Gtk::IconTheme::get_default()->load_icon("edit-copy", 16);
+    root.res.icon_key = Gtk::IconTheme::get_default()->load_icon("media-playback-stop", 16);
+
     JviMainWindow* window = new JviMainWindow;
     JviModel* root_model = new JviModel;
     Glib::RefPtr<Gtk::TreeStore> main_tree_storage = Gtk::TreeStore::create(*root_model);
@@ -30,6 +33,7 @@ int main(int argc, char *argv[])
 
     auto view_root = main_tree_storage->append();
     (*view_root)[root_model->value_text] = filename;
+    (*view_root)[root_model->value_icon] = root.res.icon_doc;
 
     iterNode(*json_object, view_root, main_tree_storage);
 
@@ -88,7 +92,12 @@ void setup_gui(JviMainWindow*               window,
 
     /* other settings */
     Gtk::TreeView* tree_view = new Gtk::TreeView(main_tree_storage);
-    tree_view->append_column("JSON", model->value_text);
+
+    Gtk::TreeView::Column* pColumn = Gtk::manage(new Gtk::TreeView::Column("JSON"));
+    pColumn->pack_start(model->value_icon, false);
+    pColumn->pack_start(model->value_text);
+    tree_view->append_column(*pColumn);
+
     tree_view->set_hover_selection(true);
     tree_view->set_enable_tree_lines(true);
     tree_view->set_activate_on_single_click(true);
@@ -124,8 +133,10 @@ auto iterNode(Json::Value& json_root, auto view_root, auto main_tree_storage)
     auto make_node_view = [&model](auto name, auto val, auto child) {
         if (val.size()) {
             (*child)[model.value_text] = name + " : " + val;
+            (*child)[model.value_icon] = root.res.icon_key;
         } else {
             (*child)[model.value_text] = name;
+            (*child)[model.value_icon] = root.res.icon_obj;
         }
     };
 

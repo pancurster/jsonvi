@@ -9,6 +9,11 @@ struct JviRoot {
     struct Gui {
         Glib::RefPtr<Gtk::EntryBuffer> path_entry_buff;
     } gui;
+    struct Resources {
+        Glib::RefPtr<Gdk::Pixbuf> icon_doc;
+        Glib::RefPtr<Gdk::Pixbuf> icon_obj;
+        Glib::RefPtr<Gdk::Pixbuf> icon_key;
+    } res;
 };
 
 class JviMainWindow : public Gtk::Window
@@ -37,10 +42,11 @@ public:
     JviModel()
     {
         add(value_text);
+        add(value_icon);
     }
     virtual ~JviModel() {}
     Gtk::TreeModelColumn<Glib::ustring> value_text;
-    //Gtk::TreeModelColumn< Glib::RefPtr<Gdk::Pixbuf> > thumbnail;
+    Gtk::TreeModelColumn<Glib::RefPtr<Gdk::Pixbuf> > value_icon;
 };
 
 void setup_gui(JviMainWindow* window,
