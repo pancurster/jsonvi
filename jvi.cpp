@@ -79,19 +79,35 @@ void setup_gui(JviMainWindow*               window,
     window->set_title("jvi - " + root.filename);
 
     /* layout */
+    Gtk::Paned* main_hpaned = new Gtk::Paned;
+    window->add(*main_hpaned);
+
     Gtk::VBox* main_vbox = new Gtk::VBox;
-    window->add(*main_vbox);
+    Gtk::ListBox* bookmark_list = new Gtk::ListBox;
+
+    Gtk::Button* bookmark_button = new Gtk::Button("Bookmarsk");
 
     Gtk::Entry* path_entry = new Gtk::Entry;
-    path_entry->show();
     root.gui.path_entry_buff = path_entry->get_buffer();
 
     Gtk::ScrolledWindow* scrolled_window = new Gtk::ScrolledWindow;
-    scrolled_window->show();
+
+    main_hpaned->pack1(*main_vbox);
+    main_hpaned->pack2(*bookmark_list);
+    main_hpaned->set_wide_handle(true);
+    main_hpaned->set_position((800/6)*5);
+
+    bookmark_list->append(*bookmark_button);
 
     main_vbox->pack_start(*path_entry, false, false);
     main_vbox->pack_end(*scrolled_window, true, true);
+
+    main_hpaned->show();
     main_vbox->show();
+    path_entry->show();
+    scrolled_window->show();
+    bookmark_list->show();
+    bookmark_button->show();
 
 
     /* other settings */
