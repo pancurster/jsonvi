@@ -1,5 +1,5 @@
 #include <gtkmm.h>
-#include <jsoncpp/json/json.h>
+#include <json/json.h>
 #include <iostream>
 #include <fstream>
 #include <functional>
@@ -85,7 +85,7 @@ void setup_gui(JviMainWindow*               window,
     Gtk::VBox* main_vbox = new Gtk::VBox;
     Gtk::ListBox* bookmark_list = new Gtk::ListBox;
 
-    Gtk::Button* bookmark_button = new Gtk::Button("Bookmarsk");
+    Gtk::Button* bookmark_button = new Gtk::Button("Bookmarks");
 
     Gtk::Entry* path_entry = new Gtk::Entry;
     root.gui.path_entry_buff = path_entry->get_buffer();
@@ -147,7 +147,7 @@ Json::Value* parse_json(string filename)
     return json_root;
 }
 
-auto iter_node(Json::Value& json_root, auto view_root, auto main_tree_storage)
+void iter_node(Json::Value& json_root, auto view_root, auto main_tree_storage)
 {
     JviModel model;
     auto make_node_view = [&model](auto name, auto val, auto child) {
@@ -191,5 +191,5 @@ auto iter_node(Json::Value& json_root, auto view_root, auto main_tree_storage)
             make_node_view(name, val, child);
         }
     }
-};
+}
 

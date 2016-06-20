@@ -2,7 +2,7 @@
 #define JVI_H
 
 #include <gtkmm.h>
-#include <jsoncpp/json/json.h>
+#include <json/json.h>
 #include <string>
 
 struct JviRoot {
@@ -54,7 +54,7 @@ void setup_gui(JviMainWindow* window,
                Glib::RefPtr<Gtk::TreeStore> mainTreeStorage,
                JviModel* model);
 Json::Value* parse_json(std::string filename);
-auto iter_node(Json::Value& jsonRoot, auto viewRoot, auto mainTreeStorage);
+void iter_node(Json::Value& jsonRoot, auto viewRoot, auto mainTreeStorage);
 
 
 #endif //JVI_H
