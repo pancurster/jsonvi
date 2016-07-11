@@ -39,10 +39,10 @@ int main(int argc, char *argv[])
     /* parse json file */
     Json::Value* json_object = parse_json(root.filename);
 
-    /* populate view by json */
+    /* populate text-view */
+    root.gui.json_text_buff->set_text(json_object->toStyledString());
+    /* populate object-view */
     iter_node(*json_object, view_root, main_tree_storage);
-
-    cout << "size:" << json_object->size() << "\n";
 
     return app->run(*window);
 }
@@ -78,21 +78,31 @@ void setup_gui(JviMainWindow*               window,
     window->set_default_size(800, 800);
     window->set_title("jvi - " + root.filename);
 
+    /* widgets creation */
+    Gtk::Notebook* notebook = new Gtk::Notebook();
+    Gtk::ScrolledWindow* scrolled_window_oview = new Gtk::ScrolledWindow;
+    Gtk::ScrolledWindow* scrolled_window_tview = new Gtk::ScrolledWindow;
+
+    /* object-view widgets */
+    Gtk::VBox* main_vbox = new Gtk::VBox;
+    Gtk::TreeView* tree_view = new Gtk::TreeView(main_tree_storage);
+    Gtk::ListBox* bookmark_list = new Gtk::ListBox;
+    Gtk::Button* bookmark_button = new Gtk::Button("Bookmarks");
+    Gtk::Entry* path_entry = new Gtk::Entry;
+    root.gui.path_entry_buff = path_entry->get_buffer();
+
+    /* text-view widgets */
+    root.gui.json_text_buff = Gtk::TextBuffer::create();
+    Gtk::TextView* text_view = new Gtk::TextView(root.gui.json_text_buff);
+
     /* layout */
     Gtk::Paned* main_hpaned = new Gtk::Paned;
     window->add(*main_hpaned);
 
-    Gtk::VBox* main_vbox = new Gtk::VBox;
-    Gtk::ListBox* bookmark_list = new Gtk::ListBox;
+    notebook->append_page(*main_vbox, "Object View");
+    notebook->append_page(*scrolled_window_tview, "Text View");
 
-    Gtk::Button* bookmark_button = new Gtk::Button("Bookmarks");
-
-    Gtk::Entry* path_entry = new Gtk::Entry;
-    root.gui.path_entry_buff = path_entry->get_buffer();
-
-    Gtk::ScrolledWindow* scrolled_window = new Gtk::ScrolledWindow;
-
-    main_hpaned->pack1(*main_vbox);
+    main_hpaned->pack1(*notebook);
     main_hpaned->pack2(*bookmark_list);
     main_hpaned->set_wide_handle(true);
     main_hpaned->set_position((800/6)*5);
@@ -100,19 +110,20 @@ void setup_gui(JviMainWindow*               window,
     bookmark_list->append(*bookmark_button);
 
     main_vbox->pack_start(*path_entry, false, false);
-    main_vbox->pack_end(*scrolled_window, true, true);
+    main_vbox->pack_end(*scrolled_window_oview, true, true);
 
+    text_view->show();
+    notebook->show();
     main_hpaned->show();
     main_vbox->show();
     path_entry->show();
-    scrolled_window->show();
+    scrolled_window_oview->show();
+    scrolled_window_tview->show();
     bookmark_list->show();
     bookmark_button->show();
 
 
     /* other settings */
-    Gtk::TreeView* tree_view = new Gtk::TreeView(main_tree_storage);
-
     Gtk::TreeView::Column* pColumn = Gtk::manage(new Gtk::TreeView::Column("JSON"));
     pColumn->pack_start(model->value_icon, false);
     pColumn->pack_start(model->value_text);
@@ -122,7 +133,8 @@ void setup_gui(JviMainWindow*               window,
     tree_view->set_enable_tree_lines(true);
     tree_view->set_activate_on_single_click(true);
     tree_view->signal_row_activated().connect(sigc::ptr_fun(&click_tree_node_handler));
-    scrolled_window->add(*tree_view);
+    scrolled_window_oview->add(*tree_view);
+    scrolled_window_tview->add(*text_view);
     tree_view->show();
 }
 
