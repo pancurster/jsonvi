@@ -163,9 +163,9 @@ Json::Value* parse_json(string file)
 
     auto success = reader.parse(file, *json_root);
     if (!success) {
-        cout << "Ups! Problem parsing JSON\n";
-        cout << reader.getFormattedErrorMessages();
-        return nullptr;
+        dprintf(2, "Ups! Problem parsing JSON\n%s", reader.getFormattedErrorMessages().c_str());
+        static const string error("error");
+        (*json_root)[error] = reader.getFormattedErrorMessages();
     }
     return json_root;
 }
