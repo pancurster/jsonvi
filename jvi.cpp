@@ -5,11 +5,6 @@
 #include <functional>
 #include "jvi.h"
 
-// TODO:
-// add bookmarks
-// add some colors
-// remove mark over mousecursor (instead mark on click)
-
 using namespace std;
 
 JviRoot root;
@@ -21,33 +16,41 @@ int main(int argc, char *argv[])
     int argcgtk = 1;
     auto app = Gtk::Application::create(argcgtk, argv, "org.gtkmm.examples.base");
 
-    /* load resources */
-    root.res.icon_doc = Gtk::IconTheme::get_default()->load_icon("text-x-generic", 16);
-    root.res.icon_obj = Gtk::IconTheme::get_default()->load_icon("edit-copy", 16);
-    root.res.icon_key = Gtk::IconTheme::get_default()->load_icon("media-playback-stop", 16);
-
     /* setup main widgets */
     JviMainWindow* window = new JviMainWindow;
-    JviModel* root_model = new JviModel;
-    Glib::RefPtr<Gtk::TreeStore> main_tree_storage = Gtk::TreeStore::create(*root_model);
-    setup_gui(window, main_tree_storage, root_model);
-
-    auto view_root = main_tree_storage->append();
-    (*view_root)[root_model->value_text] = root.filename;
-    (*view_root)[root_model->value_icon] = root.res.icon_doc;
-
-    /* parse json file */
-    Json::Value* json_object = parse_json(root.filename);
+    setup_gui(window);
 
     /* populate text-view */
-    root.gui.json_text_buff->set_text(json_object->toStyledString());
-    /* populate object-view */
-    iter_node(*json_object, view_root, main_tree_storage);
-
+    root.gui.json_text_buff->set_text(load_file(root.filename));
     return app->run(*window);
 }
+void on_buff_change()
+{
+    root.state.json_changed = true;
+}
+void on_switch_page(Gtk::Widget* page, int page_number)
+{
+    root.state.prev_page = 1;
 
-void click_tree_node_handler(const Gtk::TreeModel::Path& c_path, Gtk::TreeViewColumn* view)
+    if (root.state.prev_page == 1 && root.state.json_changed) {
+
+        /* parse again json and redraw view */
+        string new_json(root.gui.json_text_buff->get_text());
+        Json::Value* json_object = parse_json(new_json);
+
+        root.gui.main_tree_storage->clear();
+        auto row = root.gui.main_tree_storage->append();
+
+        JviModel* model = new JviModel;
+        (*row)[model->value_text] = root.filename;
+        (*row)[model->value_icon] = root.res.icon_doc;
+        iter_node(*json_object, row, root.gui.main_tree_storage);
+    }
+
+    root.state.prev_page ^= 0x1;
+    root.state.json_changed = false;
+}
+void on_click_tree_node(const Gtk::TreeModel::Path& c_path, Gtk::TreeViewColumn* view)
 {
     string path_to_object = "";
     JviModel row_model;
@@ -70,10 +73,13 @@ void click_tree_node_handler(const Gtk::TreeModel::Path& c_path, Gtk::TreeViewCo
         view->get_tree_view()->expand_row(c_path, false);
 }
 
-void setup_gui(JviMainWindow*               window,
-               Glib::RefPtr<Gtk::TreeStore> main_tree_storage,
-               JviModel*                    model)
+void setup_gui(JviMainWindow* window)
 {
+    /* load resources */
+    root.res.icon_doc = Gtk::IconTheme::get_default()->load_icon("text-x-generic", 16);
+    root.res.icon_obj = Gtk::IconTheme::get_default()->load_icon("edit-copy", 16);
+    root.res.icon_key = Gtk::IconTheme::get_default()->load_icon("media-playback-stop", 16);
+
     /* main window */
     window->set_default_size(800, 800);
     window->set_title("jvi - " + root.filename);
@@ -85,7 +91,9 @@ void setup_gui(JviMainWindow*               window,
 
     /* object-view widgets */
     Gtk::VBox* main_vbox = new Gtk::VBox;
-    Gtk::TreeView* tree_view = new Gtk::TreeView(main_tree_storage);
+    JviModel* model = new JviModel;
+    root.gui.main_tree_storage = Gtk::TreeStore::create(*model);
+    Gtk::TreeView* tree_view = new Gtk::TreeView(root.gui.main_tree_storage);
     Gtk::ListBox* bookmark_list = new Gtk::ListBox;
     Gtk::Button* bookmark_button = new Gtk::Button("Bookmarks");
     Gtk::Entry* path_entry = new Gtk::Entry;
@@ -94,6 +102,7 @@ void setup_gui(JviMainWindow*               window,
     /* text-view widgets */
     root.gui.json_text_buff = Gtk::TextBuffer::create();
     Gtk::TextView* text_view = new Gtk::TextView(root.gui.json_text_buff);
+    root.gui.json_text_buff->signal_changed().connect(sigc::ptr_fun(&on_buff_change));
 
     /* layout */
     Gtk::Paned* main_hpaned = new Gtk::Paned;
@@ -101,6 +110,7 @@ void setup_gui(JviMainWindow*               window,
 
     notebook->append_page(*main_vbox, "Object View");
     notebook->append_page(*scrolled_window_tview, "Text View");
+    notebook->signal_switch_page().connect(sigc::ptr_fun(&on_switch_page));
 
     main_hpaned->pack1(*notebook);
     main_hpaned->pack2(*bookmark_list);
@@ -132,29 +142,35 @@ void setup_gui(JviMainWindow*               window,
     tree_view->set_hover_selection(true);
     tree_view->set_enable_tree_lines(true);
     tree_view->set_activate_on_single_click(true);
-    tree_view->signal_row_activated().connect(sigc::ptr_fun(&click_tree_node_handler));
+    tree_view->signal_row_activated().connect(sigc::ptr_fun(&on_click_tree_node));
     scrolled_window_oview->add(*tree_view);
     scrolled_window_tview->add(*text_view);
     tree_view->show();
 }
-
-Json::Value* parse_json(string filename)
+string load_file(string filename)
 {
-    Json::Value* json_root = new Json::Value;
-    Json::Reader reader;
-
     if (filename.size()) {
         std::filebuf fb;
         if (fb.open(filename, std::ios::in)) {
             std::istream is(&fb);
-            auto success = reader.parse(is, *json_root);
-            if (!success) {
-                cout << "Ups! Problem parsing JSON\n";
-                cout << reader.getFormattedErrorMessages();
-                return nullptr;
-            }
-            fb.close();
+
+            stringstream str_stream;
+            str_stream << is.rdbuf();
+            return str_stream.str();
         }
+    }
+    return "";
+}
+Json::Value* parse_json(string file)
+{
+    Json::Value* json_root = new Json::Value;
+    Json::Reader reader;
+
+    auto success = reader.parse(file, *json_root);
+    if (!success) {
+        cout << "Ups! Problem parsing JSON\n";
+        cout << reader.getFormattedErrorMessages();
+        return nullptr;
     }
     return json_root;
 }
@@ -162,13 +178,13 @@ Json::Value* parse_json(string filename)
 void iter_node(Json::Value& json_root, auto view_root, auto main_tree_storage)
 {
     JviModel model;
-    auto make_node_view = [&model](auto name, auto val, auto child) {
+    auto make_node_view = [&model](auto name, auto val, auto view_child) {
         if (val.size()) {
-            (*child)[model.value_text] = name + " : " + val;
-            (*child)[model.value_icon] = root.res.icon_key;
+            (*view_child)[model.value_text] = name + " : " + val;
+            (*view_child)[model.value_icon] = root.res.icon_key;
         } else {
-            (*child)[model.value_text] = name;
-            (*child)[model.value_icon] = root.res.icon_obj;
+            (*view_child)[model.value_text] = name;
+            (*view_child)[model.value_icon] = root.res.icon_obj;
         }
     };
 
@@ -194,13 +210,13 @@ void iter_node(Json::Value& json_root, auto view_root, auto main_tree_storage)
         string name = get_name(i, index);
         string val = get_value(i);
 
-        auto child = main_tree_storage->append(view_root->children());
+        auto view_child = main_tree_storage->append(view_root->children());
 
         if (i->size()) {
-            make_node_view(name, val, child);
-            iter_node(*i, child, main_tree_storage);
+            make_node_view(name, val, view_child);
+            iter_node(*i, view_child, main_tree_storage);
         } else {
-            make_node_view(name, val, child);
+            make_node_view(name, val, view_child);
         }
     }
 }

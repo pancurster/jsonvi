@@ -10,12 +10,17 @@ struct JviRoot {
     struct Gui {
         Glib::RefPtr<Gtk::EntryBuffer> path_entry_buff;
         Glib::RefPtr<Gtk::TextBuffer> json_text_buff;
+        Glib::RefPtr<Gtk::TreeStore> main_tree_storage;
     } gui;
     struct Resources {
         Glib::RefPtr<Gdk::Pixbuf> icon_doc;
         Glib::RefPtr<Gdk::Pixbuf> icon_obj;
         Glib::RefPtr<Gdk::Pixbuf> icon_key;
     } res;
+    struct State {
+        int  prev_page = 1;
+        bool json_changed = true;
+    } state;
 };
 
 class JviMainWindow : public Gtk::Window
@@ -51,11 +56,9 @@ public:
     Gtk::TreeModelColumn<Glib::RefPtr<Gdk::Pixbuf> > value_icon;
 };
 
-void setup_gui(JviMainWindow* window,
-               Glib::RefPtr<Gtk::TreeStore> mainTreeStorage,
-               JviModel* model);
-Json::Value* parse_json(std::string filename);
+void setup_gui(JviMainWindow* window);
+Json::Value* parse_json (std::string filename);
 void iter_node(Json::Value& jsonRoot, auto viewRoot, auto mainTreeStorage);
-
+std::string load_file(std::string filename);
 
 #endif //JVI_H
