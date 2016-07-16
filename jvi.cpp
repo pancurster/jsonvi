@@ -4,15 +4,12 @@
 #include <fstream>
 #include <functional>
 #include "jvi.h"
-
 using namespace std;
 
 JviRoot root;
-
 int main(int argc, char *argv[])
 {
     root.filename = argv[1] ? argv[1] : "";
-
     int argcgtk = 1;
     auto app = Gtk::Application::create(argcgtk, argv, "org.gtkmm.examples.base");
 
@@ -38,13 +35,13 @@ void on_switch_page(Gtk::Widget* page, int page_number)
         string new_json(root.gui.json_text_buff->get_text());
         Json::Value* json_object = parse_json(new_json);
 
-        root.gui.main_tree_storage->clear();
-        auto row = root.gui.main_tree_storage->append();
+        root.gui.tree_storage->clear();
+        auto row = root.gui.tree_storage->append();
 
-        JviModel* model = new JviModel;
-        (*row)[model->value_text] = root.filename;
-        (*row)[model->value_icon] = root.res.icon_doc;
-        iter_node(*json_object, row, root.gui.main_tree_storage);
+        JviModel model;
+        (*row)[model.value_text] = root.filename;
+        (*row)[model.value_icon] = root.res.icon_doc;
+        iter_node(*json_object, row, root.gui.tree_storage);
     }
 
     root.state.prev_page ^= 0x1;
@@ -65,14 +62,12 @@ void on_click_tree_node(const Gtk::TreeModel::Path& c_path, Gtk::TreeViewColumn*
     }
     root.gui.path_entry_buff->set_text(path_to_object);
 
-
     /*  expand/collapse on click */
     if (view->get_tree_view()->row_expanded(c_path))
         view->get_tree_view()->collapse_row(c_path);
     else
         view->get_tree_view()->expand_row(c_path, false);
 }
-
 void setup_gui(JviMainWindow* window)
 {
     /* load resources */
@@ -91,9 +86,9 @@ void setup_gui(JviMainWindow* window)
 
     /* object-view widgets */
     Gtk::VBox* main_vbox = new Gtk::VBox;
-    JviModel* model = new JviModel;
-    root.gui.main_tree_storage = Gtk::TreeStore::create(*model);
-    Gtk::TreeView* tree_view = new Gtk::TreeView(root.gui.main_tree_storage);
+    JviModel model;
+    root.gui.tree_storage = Gtk::TreeStore::create(model);
+    Gtk::TreeView* tree_view = new Gtk::TreeView(root.gui.tree_storage);
     Gtk::ListBox* bookmark_list = new Gtk::ListBox;
     Gtk::Button* bookmark_button = new Gtk::Button("Bookmarks");
     Gtk::Entry* path_entry = new Gtk::Entry;
@@ -135,8 +130,8 @@ void setup_gui(JviMainWindow* window)
 
     /* other settings */
     Gtk::TreeView::Column* pColumn = Gtk::manage(new Gtk::TreeView::Column("JSON"));
-    pColumn->pack_start(model->value_icon, false);
-    pColumn->pack_start(model->value_text);
+    pColumn->pack_start(model.value_icon, false);
+    pColumn->pack_start(model.value_text);
     tree_view->append_column(*pColumn);
 
     tree_view->set_hover_selection(true);
@@ -159,7 +154,7 @@ string load_file(string filename)
             return str_stream.str();
         }
     }
-    return "";
+    return "{}";
 }
 Json::Value* parse_json(string file)
 {
@@ -174,20 +169,18 @@ Json::Value* parse_json(string file)
     }
     return json_root;
 }
-
-void iter_node(Json::Value& json_root, auto view_root, auto main_tree_storage)
+void iter_node(Json::Value& json_root, auto root_row, auto tree_storage)
 {
     JviModel model;
-    auto make_node_view = [&model](auto name, auto val, auto view_child) {
+    auto make_node_view = [&model](auto name, auto val, auto row) {
         if (val.size()) {
-            (*view_child)[model.value_text] = name + " : " + val;
-            (*view_child)[model.value_icon] = root.res.icon_key;
+            (*row)[model.value_text] = name + " : " + val;
+            (*row)[model.value_icon] = root.res.icon_key;
         } else {
-            (*view_child)[model.value_text] = name;
-            (*view_child)[model.value_icon] = root.res.icon_obj;
+            (*row)[model.value_text] = name;
+            (*row)[model.value_icon] = root.res.icon_obj;
         }
     };
-
     auto get_name = [&json_root](auto i, int& table_index) {
         string name = i.name();
         if (json_root.type() == Json::ValueType::arrayValue) {
@@ -195,11 +188,10 @@ void iter_node(Json::Value& json_root, auto view_root, auto main_tree_storage)
         }
         return name;
     };
-
-    auto get_value = [](auto i) {
+    auto get_value = [](auto json_obj) {
         string val = "";
-        if (i->isConvertibleTo(Json::ValueType::stringValue)) {
-            val = i->asString();
+        if (json_obj->isConvertibleTo(Json::ValueType::stringValue)) {
+            val = json_obj->asString();
         }
         return val;
     };
@@ -210,13 +202,13 @@ void iter_node(Json::Value& json_root, auto view_root, auto main_tree_storage)
         string name = get_name(i, index);
         string val = get_value(i);
 
-        auto view_child = main_tree_storage->append(view_root->children());
+        auto child_row = tree_storage->append(root_row->children());
 
         if (i->size()) {
-            make_node_view(name, val, view_child);
-            iter_node(*i, view_child, main_tree_storage);
+            make_node_view(name, val, child_row);
+            iter_node(*i, child_row, tree_storage);
         } else {
-            make_node_view(name, val, view_child);
+            make_node_view(name, val, child_row);
         }
     }
 }

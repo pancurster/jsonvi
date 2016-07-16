@@ -10,7 +10,7 @@ struct JviRoot {
     struct Gui {
         Glib::RefPtr<Gtk::EntryBuffer> path_entry_buff;
         Glib::RefPtr<Gtk::TextBuffer> json_text_buff;
-        Glib::RefPtr<Gtk::TreeStore> main_tree_storage;
+        Glib::RefPtr<Gtk::TreeStore> tree_storage;
     } gui;
     struct Resources {
         Glib::RefPtr<Gdk::Pixbuf> icon_doc;
