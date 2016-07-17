@@ -34,6 +34,8 @@ void on_switch_page(Gtk::Widget* page, int page_number)
         /* parse again json and redraw view */
         string new_json(root.gui.json_text_buff->get_text());
         Json::Value* json_object = parse_json(new_json);
+        /* auto format text representation */
+        root.gui.json_text_buff->set_text(json_object->toStyledString());
 
         root.gui.tree_storage->clear();
         auto row = root.gui.tree_storage->append();
@@ -97,6 +99,7 @@ void setup_gui(JviMainWindow* window)
     /* text-view widgets */
     root.gui.json_text_buff = Gtk::TextBuffer::create();
     Gtk::TextView* text_view = new Gtk::TextView(root.gui.json_text_buff);
+    text_view->set_wrap_mode(Gtk::WrapMode::WRAP_WORD_CHAR);
     root.gui.json_text_buff->signal_changed().connect(sigc::ptr_fun(&on_buff_change));
 
     /* layout */

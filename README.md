@@ -6,4 +6,3 @@
 * add bookmarks
 * add some colors
 * remove mark over mousecursor (instead mark on click)
-* add pretty-print button
